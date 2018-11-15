@@ -9,7 +9,6 @@ Then, you can run the run_example.py to get the recommendation results.
 
 Author: Caihua Li (caihuakelva@gmail.com)
 
-
 ## Datasets
 
 Hisense smart TV: https://drive.google.com/open?id=1ZxQCp1NKIRjjLXZF4_KkwO2ZXVbA6nnp
