@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-\
+"""
+@version: python2.7
+@author: ‘licaihua‘
+"""
 
 import heapq
 
