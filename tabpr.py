@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-\
-
+"""
+@version: python2.7
+@author: ‘licaihua‘
+"""
 import numpy as np
 import theano
 import theano.tensor as T
@@ -52,7 +55,7 @@ class tabpr(object):
         u = T.lvector('u')
         i = T.lvector('i')
         j = T.lvector('j')
-        lr = T.scalar('lr')  # 数值类型
+        lr = T.scalar('lr') 
 
         # loss of the sample
         y_ui = T.dot(self.U[u], self.V[i].T).diagonal()
