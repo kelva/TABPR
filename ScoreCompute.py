@@ -29,15 +29,15 @@ def readProgramInfo():
 
 def ScoreCompute(day, item, duration):
     """
-      compute the score
+      compute the score for every log
 
       """
-    decay1 = 1 / 3 * 2 ** (-decay * (len(date) - 1 - day))
+    decay1 = 1.0/3*2 ** (-decay * (len(date) - 1 - day))
     length = itemLengthDic[item]
     score1 = duration / length
     if score1 > 1:
         score1 = 1.0
-    score = decay1 * (score1) ** (interest / itemLengthDic[item])
+    score = decay1 * (score1) ** (interest / length)
     return score
 
 
@@ -50,9 +50,9 @@ def NoSlidingWindow():
     with open(behaviorFliePath, "r") as f:
         for line in f:
             line = line.strip("\n").split("\t")
-            user = int(line[0])  # user
-            # if user == U:
-            #     break
+            user = int(line[0])
+            if user == U:
+                break
             item = int(line[1])
             duration = float(line[2])
             day = dateDict[line[3]]
@@ -60,22 +60,24 @@ def NoSlidingWindow():
             timestamp = time.mktime(time.strptime(line[3] + ' ' + line[5], "%Y-%m-%d %H:%M:%S"))
             score = ScoreCompute(day, item, duration)
             scoreList.append([user, day, slot, item, score, duration, timestamp])
+    return scoreList
 
-    f.close()
-    SlidingWindow(scoreList)
-
-
-def SlidingWindow(scoreList):
+def SlidingWindow():
     """
     add scores of previous and posterior time slot
 
     """
-    userTime = {}  # store the timestamp of last log in each slot
+    scoreList=NoSlidingWindow()
+    userslot_lasttime = {}  # store the timestamp of last log in each slot
+    userslot_item={}
     adjacentSlotScore = []  # store the score of adjacent time slot
     IdDict = {}  # give every log a id
     n = 0
     for line in scoreList:
-        userTime[(line[0], line[2])] = float(line[6])
+        userslot_lasttime[(line[0], line[2])] = float(line[6])
+        if userslot_item.has_key((line[0],line[2]))==False:
+            userslot_item[(line[0], line[2])]=[]
+        userslot_item[(line[0], line[2])].append(line[3])
         IdDict[(line[0], line[1], line[2], line[3])] = n
         n += 1
     for line in scoreList:
@@ -90,11 +92,11 @@ def SlidingWindow(scoreList):
         for j in range(S):
             if j != slot and min(abs(slot - j), S - abs(slot - j)) == 1:
                 # if the time slot j has no log
-                if userTime.has_key((user, j)) == False:
+                if userslot_lasttime.has_key((user, j)) == False:
                     continue
                 # if the timestamp of the log is larger than the last log in slot j
-                elif userTime.has_key((user, j)) == True:
-                    if float(timestamp) > userTime[(user, j)]:
+                elif userslot_lasttime.has_key((user, j)) == True:
+                    if float(timestamp) > userslot_lasttime[(user, j)]:
                         continue
                 score = ScoreCompute(day, item, duration)
 
@@ -102,10 +104,12 @@ def SlidingWindow(scoreList):
                     key = IdDict[(user, day, j, item)]
                     scoreList[key][4] += score
                 else:
-                    adjacentSlotScore.append([user, day, j, item, score, duration, timestamp])
+                    # if the user has viewed the item in slot j
+                    if item in userslot_item[(user,j)]:
+                        adjacentSlotScore.append([user, day, j, item, score, duration, timestamp])
     scoreList += adjacentSlotScore
     scoreList = sorted(scoreList, key=lambda item: (int(item[0]), int(item[2]), float(item[6])))
-    mergeScore(scoreList)
+    return scoreList
 
 
 def mergeScore(scoreList):
@@ -124,7 +128,7 @@ def mergeScore(scoreList):
 
         if userSlotId.has_key((user, slot)) == False:
             j += 1
-            userSlotId[(scoreList[i][0], scoreList[i][2])] = j
+            userSlotId[(user,slot)] = j
         if mergescore.has_key((userSlotId[(user, slot)], item)):
             mergescore[(userSlotId[(user, slot)], item)] += score
         else:
@@ -134,16 +138,17 @@ def mergeScore(scoreList):
     # We treat the item with largest score and item with most viewing times as the positive item i.e., score=1
 
     UserSlotItem = {}  # store all items of each time slot for all users
-    UserSlotScore = {}  # store all score of each time slot for all users to judge weather all scores of item are negative
-    maxScoreItem = {}  # store the item with the largest score of each time slot for all users
+    UserSlotScore = {}  # store all score of each time slot for all users to judge wethear all scores of item are negative
+    maxScoreItem = {}  # store of the item with the largest score of each time slot for all users
 
     for i in range(len(scoreList)):
         user = scoreList[i][0]
         slot = scoreList[i][2]
         item = scoreList[i][3]
         score = mergescore[(userSlotId[(user, slot)], item)]
+
         if maxScoreItem.has_key((user, slot)) == False:
-            maxScoreItem[(user, slot)] = [0, 0]
+            maxScoreItem[(user, slot)] = [item, score]
         if score > maxScoreItem[(user, slot)][1]:
             maxScoreItem[(user, slot)] = [item, score]
 
@@ -164,12 +169,11 @@ def mergeScore(scoreList):
         if sum(UserSlotScore[key]) != 0:
             continue
         else:
-            mergescore[userSlotId[key], maxScoreItem[key][0]] = 1  # the item with the largest score
+            mergescore[(userSlotId[key], maxScoreItem[key][0])] = 1  # the item with the largest score
 
             item_count = Counter(UserSlotItem[key])
-            item = item_count.most_common(1)  # the item with the most viewing time
-            for it in item:
-                mergescore[userSlotId[key], it[0]] = 1
+            item = item_count.most_common(1)  # the item with the most viewing times
+            mergescore[(userSlotId[key], item[0])] = 1
     writeFile(scoreList, userSlotId, mergescore)
 
 
@@ -202,9 +206,8 @@ if __name__ == '__main__':
             "2017-11-13", "2017-11-14", "2017-11-15", "2017-11-16", "2017-11-17", "2017-11-18", "2017-11-19",
             "2017-11-20", "2017-11-21", "2017-11-22", "2017-11-23", "2017-11-24", "2017-11-25", "2017-11-26",
             ]
-    programFliePath = 'programdata.txt'
-    behaviorFliePath = "behaviordata.txt"
-    writePath = "ratings.txt"
+    programFliePath = 'program.txt'
+    behaviorFliePath = 'behavior.txt'
     dateDict = {}
     Score = []
     for i in range(0, len(date)):
@@ -213,7 +216,9 @@ if __name__ == '__main__':
     U = 10000  # numbers of user
     S = 6  # numbers of time slot
     interest = 7200  # adjust the influence of different time lengths of programs
-    decay = 0.5  # adjust the influence of time decay term
-    threshold = 0.6  # the threshold to distinguish positive or negative instances
+    decay = 0.2  # adjust the influence of time decay term
+    threshold = 0.8  # the threshold to distinguish positive or negative instances
+    writePath = "ratings.txt"
     readProgramInfo()
-    NoSlidingWindow()
+    scoreList = SlidingWindow()
+    mergeScore(scoreList)
