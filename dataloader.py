@@ -3,6 +3,7 @@
 @version: python2.7
 @author: ‘licaihua‘
 """
+
 def LoadRatingFile_HoldKOut(filename, splitter, K):
     """
     Each line of .rating file is: userId(starts from 0), itemId, ratingScore, time
