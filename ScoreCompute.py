@@ -7,11 +7,6 @@
 import time
 from collections import Counter
 
-'''
-slotmergedata
-
-'''
-
 
 def readProgramInfo():
     """
