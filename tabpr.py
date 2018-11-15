@@ -3,6 +3,7 @@
 @version: python2.7
 @author: ‘licaihua‘
 """
+
 import numpy as np
 import theano
 import theano.tensor as T
