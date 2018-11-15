@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-\
+"""
+@version: python2.7
+@author: ‘licaihua‘
+"""
 
 from dataloader import LoadRatingFile_HoldKOut
 from tabpr import tabpr
@@ -20,7 +24,7 @@ if __name__ == '__main__':
     reg = 0.0001
     init_mean = 0
     init_stdev = 0.05
-    maxIter = 2
+    maxIter = 40
     topK = 10
     num_thread = mp.cpu_count()
     bpr = tabpr(train, test, num_user, num_item,
